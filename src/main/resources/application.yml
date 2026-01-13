@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: digital-health-platform
+
+  profiles:
+    default: dev
+
+server:
+  port: 8080
