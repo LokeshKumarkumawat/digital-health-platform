@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="10 seconds">
+
+    <!-- App info -->
+    <property name="APP_NAME" value="digital-health-platform"/>
+
+    <!-- Dev-friendly pattern with colors -->
+    <property name="LOG_PATTERN"
+              value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr(${APP_NAME}){cyan} %clr(%logger{36}){yellow} [%X{traceId:-} %X{spanId:-}] - %msg%n"/>
+
+    <!-- ================= CONSOLE ================= -->
+    <appender name="CONSOLE"
+              class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ================= DEV FILE (ROTATED) ================= -->
+    <appender name="DEV_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <file>logs/${APP_NAME}/dev.log</file>
+
+        <rollingPolicy
+                class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>
+                logs/${APP_NAME}/dev.%d{yyyy-MM-dd}.log
+            </fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ================= NOISE REDUCTION ================= -->
+    <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="org.hibernate.type.descriptor.sql" level="TRACE"/>
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.apache.kafka" level="INFO"/>
+
+    <!-- ================= ROOT ================= -->
+    <root level="DEBUG">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="DEV_FILE"/>
+    </root>
+
+</configuration>
