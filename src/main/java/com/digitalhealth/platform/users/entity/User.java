@@ -33,6 +33,7 @@ public class User {
     @Column(length = 255)
     private String password;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", nullable = false, length = 30)
     private AuthProvider authProvider = AuthProvider.LOCAL;
