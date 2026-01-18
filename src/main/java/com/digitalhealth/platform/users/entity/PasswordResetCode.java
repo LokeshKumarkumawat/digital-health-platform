@@ -29,6 +29,7 @@ public class PasswordResetCode {
     private String code;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean used = false;
 
     @Column(name = "expiry_date", nullable = false)
