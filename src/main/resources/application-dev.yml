@@ -77,3 +77,8 @@ logging:
     org.flywaydb: INFO
   pattern:
     correlation: "[${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
+jwt:
+  secret: "dennis123456789dennis123456789dennis123456789"
+  expiration:
+    time: 900000 # 15 minute
