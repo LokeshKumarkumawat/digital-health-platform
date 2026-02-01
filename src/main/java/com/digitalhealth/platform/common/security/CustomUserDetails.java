@@ -7,15 +7,22 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 @Getter
 @RequiredArgsConstructor
-public class AuthUser implements UserDetails {
+public class CustomUserDetails implements UserDetails {
 
     private final User user;
+
+    public String getName() {
+        return user.getName();
+    }
+
+    public Long getId() {
+        return user.getId();
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

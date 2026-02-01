@@ -22,6 +22,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() ->
                         new UsernameNotFoundException("Invalid email or password"));
 
-        return new AuthUser(user);
+        return new CustomUserDetails(user);
     }
 }
