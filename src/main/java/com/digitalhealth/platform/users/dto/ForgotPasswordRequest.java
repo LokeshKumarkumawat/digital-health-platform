@@ -9,17 +9,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserResetPasswordRequest {
+public class ForgotPasswordRequest {
 
-    @Email
-    @NotBlank
+    @Email(message = "Invalid email format")
+    @NotBlank(message = "Email is required")
     private String email;
-
-    @NotBlank
-    private String resetCode;
-
-    @NotBlank
-    private String newPassword;
 }
-
-//Password reset (forgot password)

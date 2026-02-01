@@ -2,6 +2,8 @@ package com.digitalhealth.platform.common.security;
 
 import com.digitalhealth.platform.common.exception.CustomAccessDeniedHandler;
 import com.digitalhealth.platform.common.exception.CustomAuthenticationEntryPoint;
+import com.digitalhealth.platform.common.exception.CustomOAuth2FailureHandler;
+import com.digitalhealth.platform.common.exception.CustomOAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,8 +30,8 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
 
-//    private final CustomOAuth2SuccessHandler oAuth2SuccessHandler;
-//    private final CustomOAuth2FailureHandler oAuth2FailureHandler;
+    private final CustomOAuth2SuccessHandler oAuth2SuccessHandler;
+    private final CustomOAuth2FailureHandler oAuth2FailureHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -52,6 +54,8 @@ public class SecurityConfig {
                         // Auth & OAuth2
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/v1/users/register",
+                                "/api/v1/users/login",
                                 "/oauth2/**",
                                 "/login/oauth2/**"
                         ).permitAll()
@@ -59,7 +63,8 @@ public class SecurityConfig {
                         // Public read-only APIs (example)
                         .requestMatchers(
                                 "/api/doctors/public/**",
-                                "/api/v1/test"
+                                "/api/v1/test",
+                                "/files/**"
                         ).permitAll()
 
                         // Everything else secured
@@ -67,10 +72,10 @@ public class SecurityConfig {
                 )
 
 
-//                .oauth2Login(oauth2 -> oauth2
-//                        .successHandler(oAuth2SuccessHandler)
-//                        .failureHandler(oAuth2FailureHandler)
-//                )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
+                )
 
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

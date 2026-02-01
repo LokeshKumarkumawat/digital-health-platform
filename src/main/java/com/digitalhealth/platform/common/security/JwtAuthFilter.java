@@ -1,5 +1,6 @@
 package com.digitalhealth.platform.common.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,6 +44,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     UserDetails userDetails =
                             userDetailsService.loadUserByUsername(username);
 
+                    if (!jwtService.isTokenValid(token, userDetails)) {
+                        throw new JwtException("Invalid JWT");
+                    }
+
                     if (jwtService.isTokenValid(token, userDetails)) {
 
                         UsernamePasswordAuthenticationToken authentication =
@@ -73,10 +78,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private String extractToken(HttpServletRequest request) {
+        // 1️⃣ Try Authorization header (API / Mobile)
         String bearer = request.getHeader("Authorization");
         if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
+
+        // 2️⃣ Try HttpOnly cookie (Browser / OAuth2)
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("ACCESS_TOKEN".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
         return null;
     }
 }

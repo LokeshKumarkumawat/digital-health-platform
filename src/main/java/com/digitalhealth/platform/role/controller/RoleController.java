@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class RoleController {
     private final RoleService roleService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody RoleCreateRequest request) {
         RoleResponse response = roleService.createRole(request);
 
@@ -103,6 +105,14 @@ public class RoleController {
                 .build();
 
         return ResponseEntity.ok(apiResponse);
+    }
+
+
+    // ✅ ROLE_PATIENT allowed
+    @PreAuthorize("hasRole('ROLE_PATIENT')")
+    @GetMapping("/patient")
+    public String patientTest() {
+        return "Hello PATIENT 👋";
     }
 
 }
