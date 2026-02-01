@@ -83,6 +83,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
+
+        // 2️⃣ Try HttpOnly cookie (Browser / OAuth2)
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("ACCESS_TOKEN".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
         return null;
     }
 }

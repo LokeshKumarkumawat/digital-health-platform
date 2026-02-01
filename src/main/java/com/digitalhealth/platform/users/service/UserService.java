@@ -23,6 +23,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -211,6 +213,53 @@ public class UserService {
     }
 
 
+    @Transactional
+    public LoginResponse loginRegisterByGoogleOAuth2(OAuth2AuthenticationToken authenticationToken) {
+
+        OAuth2User oauth2User = authenticationToken.getPrincipal();
+
+        String email = oauth2User.getAttribute("email");
+        String name = oauth2User.getAttribute("name");
+        String picture = oauth2User.getAttribute("picture");
+
+        User user = userRepository.findByEmail(email)
+                .map(existingUser -> {
+
+                    // 🚨 Prevent provider hijacking
+                    if (existingUser.getAuthProvider() != AuthProvider.GOOGLE) {
+                        throw new BadRequestException(
+                                "Account already exists with different authentication method");
+                    }
+
+                    return existingUser;
+                })
+                .orElseGet(() -> {
+
+                    Role defaultRole = roleRepository.findByName("ROLE_PATIENT")
+                            .orElseThrow(() -> new ResourceNotFoundException("Default role not found"));
+
+                    return userRepository.save(
+                            User.builder()
+                                    .name(name)
+                                    .email(email)
+                                    .authProvider(AuthProvider.GOOGLE)
+                                    .profilePictureUrl(picture)
+                                    .roles(List.of(defaultRole))
+//                                    .tokenVersion(0) // IMPORTANT
+                                    .build()
+                    );
+                });
+
+
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        // ✅ Always include token version
+        String token = jwtService.generateToken(userDetails);
+
+        return LoginResponse.builder()
+                .token(token)
+                .user(userMapper.toResponse(user))
+                .build();
+    }
 
 
 

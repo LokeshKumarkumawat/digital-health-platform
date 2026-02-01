@@ -4,6 +4,8 @@ package com.digitalhealth.platform.users.controller;
 import com.digitalhealth.platform.common.response.ApiResponse;
 import com.digitalhealth.platform.users.dto.*;
 import com.digitalhealth.platform.users.service.UserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
@@ -213,6 +215,24 @@ public class UserController {
 //        return ResponseEntity.ok(apiResponse);
 //    }
 
+    @GetMapping("/oauth2/google")
+    public ResponseEntity<String> googleLogin() {
+        return ResponseEntity.ok("/oauth2/authorization/google");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+
+        Cookie cookie = new Cookie("ACCESS_TOKEN", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true); // true in prod
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // delete cookie
+
+        response.addCookie(cookie);
+
+        return ResponseEntity.noContent().build();
+    }
 
 
 }
