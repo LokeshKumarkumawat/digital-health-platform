@@ -4,6 +4,8 @@ import com.digitalhealth.platform.common.enums.NotificationType;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.util.Map;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,6 +27,10 @@ public class NotificationCreateRequest {
 
     @NotNull
     private String message;
+
+    // Optional template support
+    private String templateName;
+    private Map<String, Object> templateVariables;
 }
 
 //Appointment created
