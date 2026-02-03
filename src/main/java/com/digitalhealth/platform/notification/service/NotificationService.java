@@ -71,7 +71,7 @@ public class NotificationService {
                     .recipient(request.getRecipient())
                     .subject(request.getSubject())
                     .message(request.getMessage())
-                    .type(NotificationType.EMAIL)
+                    .type(request.getType())
                     .user(user)
                     .build();
 

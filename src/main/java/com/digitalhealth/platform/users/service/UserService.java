@@ -1,12 +1,15 @@
 package com.digitalhealth.platform.users.service;
 
 import com.digitalhealth.platform.common.enums.AuthProvider;
+import com.digitalhealth.platform.common.enums.NotificationType;
 import com.digitalhealth.platform.common.exception.BadRequestException;
 import com.digitalhealth.platform.common.exception.ResourceNotFoundException;
 import com.digitalhealth.platform.common.exception.UnauthorizedException;
 import com.digitalhealth.platform.common.security.CustomUserDetails;
 import com.digitalhealth.platform.common.security.JwtService;
 import com.digitalhealth.platform.common.storage.FileStorageService;
+import com.digitalhealth.platform.notification.dto.NotificationCreateRequest;
+import com.digitalhealth.platform.notification.service.NotificationService;
 import com.digitalhealth.platform.users.dto.*;
 import com.digitalhealth.platform.users.entity.PasswordResetCode;
 import com.digitalhealth.platform.users.entity.User;
@@ -31,7 +34,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,7 +53,7 @@ public class UserService {
     private final TokenGenerator tokenGenerator;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-//    private final EmailService emailService;
+    private final NotificationService notificationService;
     private final FileStorageService fileStorageService;
 
     @Transactional
@@ -164,8 +169,30 @@ public class UserService {
 
             passwordResetRepository.save(token);
 
-//            emailService.sendPasswordResetEmail(user.getEmail(), rawToken);
-            log.info("Password reset code sent to email: {}", rawToken);
+            // 🔗 RESET LINK (IMPORTANT)
+            String resetLink =
+                    "http://localhost:4200/reset-password?email=" +
+                            user.getEmail() + "&code=" + rawToken;
+
+
+            // Send notification email
+            NotificationCreateRequest notificationRequest =
+                    NotificationCreateRequest.builder()
+                            .userId(user.getId())
+                            .type(NotificationType.EMAIL)
+                            .recipient(user.getEmail())
+                            .subject("Password Reset Request")
+                            .templateName("password-reset")
+                            .templateVariables(Map.of(
+                                    "name", user.getName(),
+                                    "resetLink", resetLink,
+                                    "expiryMinutes", "20"
+                            ))
+                            .message("Password reset code") // fallback
+                            .build();
+
+            notificationService.sendEmail(notificationRequest, user);
+            log.info("Password reset email queued for userId={}", user.getId());
         });
         log.info("Password reset code sent to token: {}", email);
     }
