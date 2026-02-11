@@ -8,6 +8,7 @@ import com.digitalhealth.platform.common.exception.UnauthorizedException;
 import com.digitalhealth.platform.common.security.CustomUserDetails;
 import com.digitalhealth.platform.common.security.JwtService;
 import com.digitalhealth.platform.common.storage.FileStorageService;
+import com.digitalhealth.platform.config.redis.RedisCacheConfig;
 import com.digitalhealth.platform.notification.dto.NotificationCreateRequest;
 import com.digitalhealth.platform.notification.service.NotificationService;
 import com.digitalhealth.platform.users.dto.*;
@@ -20,6 +21,9 @@ import com.digitalhealth.platform.role.entity.Role;
 import com.digitalhealth.platform.role.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -57,6 +61,7 @@ public class UserService {
     private final FileStorageService fileStorageService;
 
     @Transactional
+    @CacheEvict(value = RedisCacheConfig.CacheNames.USER_BY_EMAIL, allEntries = true)
     public UserResponse register(UserRegisterRequest request) {
         log.info("Registering new user with email: {}", request.getEmail());
 
@@ -142,8 +147,6 @@ public class UserService {
     }
 
 
-
-
     @Transactional
     public void forgotPassword(String email) {
 
@@ -198,6 +201,10 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USERS, allEntries = true),
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USER_BY_EMAIL, key = "#request.email")
+    })
     public void resetPassword(UserResetPasswordRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -220,6 +227,10 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USERS, allEntries = true),
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USER_BY_EMAIL, allEntries = true)
+    })
     public void changePassword(UserChangePasswordRequest request) {
         log.info("Password change requested");
 
@@ -289,7 +300,6 @@ public class UserService {
     }
 
 
-
     public UserResponse getCurrentUser() {
         log.debug("Fetching current authenticated user");
         User user = getCurrentAuthenticatedUser();
@@ -297,6 +307,10 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USERS, allEntries = true),
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USER_BY_EMAIL, allEntries = true)
+    })
     public UserResponse updateCurrentUser(UserUpdateRequest request) {
 
         log.info("Updating current user profile");
@@ -319,6 +333,10 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USERS, allEntries = true),
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USER_BY_EMAIL, allEntries = true)
+    })
     public String uploadProfilePicture(MultipartFile file) {
 
         log.info("Uploading profile picture");
@@ -340,7 +358,6 @@ public class UserService {
     }
 
 
-
     public UserResponse getUserById(Long userId) {
 
         log.debug("Fetching user with id={}", userId);
@@ -353,6 +370,11 @@ public class UserService {
     }
 
 
+    @Cacheable(
+            value = RedisCacheConfig.CacheNames.USERS,
+            key = "#userId",
+            unless = "#result == null"
+    )
     public List<UserResponse> getAllUsers() {
 
         log.debug("Fetching all users");
@@ -363,6 +385,7 @@ public class UserService {
     }
 
 
+    // Get all users - Not cached (list operations typically not cached)
     public List<UserSummaryResponse> getAllUsersSummary() {
 
         log.debug("Fetching all users summary");
@@ -374,6 +397,11 @@ public class UserService {
 
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USERS, allEntries = true),
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USER_BY_EMAIL, allEntries = true),
+            @CacheEvict(value = RedisCacheConfig.CacheNames.USER_ROLES, allEntries = true)
+    })
     public void deleteUser(Long userId) {
 
         log.info("Deleting user with id={}", userId);
