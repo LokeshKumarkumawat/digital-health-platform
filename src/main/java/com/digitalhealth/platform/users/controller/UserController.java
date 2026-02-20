@@ -2,6 +2,7 @@ package com.digitalhealth.platform.users.controller;
 
 
 import com.digitalhealth.platform.common.response.ApiResponse;
+import com.digitalhealth.platform.ratelimit.RateLimit;
 import com.digitalhealth.platform.users.dto.*;
 import com.digitalhealth.platform.users.service.UserService;
 import jakarta.servlet.http.Cookie;
@@ -40,6 +41,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
+    @RateLimit(type = RateLimit.Type.LOGIN)
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody UserLoginRequest request) {
 
