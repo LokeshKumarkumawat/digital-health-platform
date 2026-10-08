@@ -51,6 +51,9 @@ public class Appointment {
     @OneToOne(mappedBy = "appointment", fetch = FetchType.LAZY)
     private Consultation consultation;
 
+    @Column(name = "expires_at")
+    private OffsetDateTime expiresAt;  // ✅ NEW - When pending booking expires
+
     @Version
     private Long version;
 

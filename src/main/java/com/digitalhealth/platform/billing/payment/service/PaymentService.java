@@ -6,6 +6,7 @@ import com.digitalhealth.platform.billing.payment.dto.*;
 import com.digitalhealth.platform.billing.payment.entity.Payment;
 import com.digitalhealth.platform.billing.payment.mapper.PaymentMapper;
 import com.digitalhealth.platform.billing.payment.repository.PaymentRepository;
+import com.digitalhealth.platform.common.enums.AppointmentStatus;
 import com.digitalhealth.platform.common.enums.PaymentStatus;
 import com.digitalhealth.platform.common.exception.BadRequestException;
 import com.digitalhealth.platform.common.exception.ResourceNotFoundException;
@@ -14,8 +15,10 @@ import com.digitalhealth.platform.users.entity.User;
 import com.digitalhealth.platform.users.repository.UserRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Charge;
+import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
+import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +74,9 @@ public class PaymentService {
         // Convert amount to cents (Stripe uses smallest currency unit)
         long amountInCents = request.getAmount().multiply(new BigDecimal(100)).longValue();
 
+        // ✅ CREATE STRIPE CUSTOMER WITH ADDRESS (India Compliance)
+        Customer customer = createStripeCustomer(currentUser, appointment, request);
+
         // Create metadata
         Map<String, String> metadata = new HashMap<>();
         metadata.put("appointmentId", request.getAppointmentId().toString());
@@ -81,11 +87,20 @@ public class PaymentService {
         PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
                 .setAmount(amountInCents)
                 .setCurrency(request.getCurrency().toLowerCase())
-                .putAllMetadata(metadata);
+                .setCustomer(customer.getId())
+                .setDescription(request.getDescription() != null
+                        ? request.getDescription()
+                        : "Medical Consultation - Appointment #" + request.getAppointmentId())
+                .putAllMetadata(metadata)
+                .setAutomaticPaymentMethods(
+                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                .setEnabled(true)
+                                .build()
+                );
 
-        if (request.getDescription() != null) {
-            paramsBuilder.setDescription(request.getDescription());
-        }
+//        if (request.getDescription() != null) {
+//            paramsBuilder.setDescription(request.getDescription());
+//        }
 
         if (request.getPaymentMethodId() != null) {
             paramsBuilder.setPaymentMethod(request.getPaymentMethodId());
@@ -121,6 +136,40 @@ public class PaymentService {
                 .build();
     }
 
+
+
+    private Customer createStripeCustomer(User user, Appointment appointment, PaymentIntentCreateRequest request) throws StripeException {
+
+        // Get patient details for address
+        var patient = appointment.getPatient();
+
+        CustomerCreateParams.Address address = CustomerCreateParams.Address.builder()
+                .setLine1(request.getAddressLine1() != null ? request.getAddressLine1() : "Address Line 1")
+                .setLine2(request.getAddressLine2())
+                .setCity(request.getCity() != null ? request.getCity() : "City")
+                .setState(request.getState() != null ? request.getState() : "State")
+                .setPostalCode(request.getPostalCode() != null ? request.getPostalCode() : "000000")
+                .setCountry(request.getCountry() != null ? request.getCountry() : "IN")
+                .build();
+
+        CustomerCreateParams customerParams = CustomerCreateParams.builder()
+                .setName(request.getCustomerName() != null
+                        ? request.getCustomerName()
+                        : user.getName())
+                .setEmail(user.getEmail())
+                .setPhone(patient.getPhone())
+                .setAddress(address)
+                .setDescription("Patient: " + user.getName())
+                .putMetadata("userId", user.getId().toString())
+                .putMetadata("patientId", patient.getId().toString())
+                .build();
+
+        Customer customer = Customer.create(customerParams);
+        log.info("Created Stripe customer: {}", customer.getId());
+
+        return customer;
+    }
+
     /**
      * Confirm payment after Stripe processes it
      * Called by webhook or after frontend confirmation
@@ -141,6 +190,14 @@ public class PaymentService {
 
         if ("succeeded".equals(paymentIntent.getStatus())) {
             payment.setPaidAt(OffsetDateTime.now());
+
+            Appointment appointment = payment.getAppointment();
+            if (appointment != null && appointment.getStatus() == AppointmentStatus.PENDING_PAYMENT) {
+                appointment.setStatus(AppointmentStatus.SCHEDULED);
+                appointment.setExpiresAt(null); // Clear expiration
+                appointmentRepository.save(appointment);
+                log.info("Appointment {} activated after payment", appointment.getId());
+            }
 
             String latestChargeId = paymentIntent.getLatestCharge();
             if (latestChargeId != null) {

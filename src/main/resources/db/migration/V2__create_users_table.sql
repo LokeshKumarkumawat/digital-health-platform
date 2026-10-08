@@ -5,6 +5,7 @@ create table users (
     password varchar(255),
     auth_provider varchar(30) not null default 'LOCAL',
     profile_picture_url varchar(500),
+    has_profile_complete boolean NOT NULL DEFAULT false,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     version bigint not null default 0

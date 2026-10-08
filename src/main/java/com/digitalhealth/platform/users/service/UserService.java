@@ -370,11 +370,11 @@ public class UserService {
     }
 
 
-    @Cacheable(
-            value = RedisCacheConfig.CacheNames.USERS,
-            key = "#userId",
-            unless = "#result == null"
-    )
+//    @Cacheable(
+//            value = RedisCacheConfig.CacheNames.USERS,
+//            key = "#userId",
+//            unless = "#result == null"
+//    )
     public List<UserResponse> getAllUsers() {
 
         log.debug("Fetching all users");

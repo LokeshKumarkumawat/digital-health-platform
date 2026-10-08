@@ -83,6 +83,10 @@ public class PatientService {
         Patient savedPatient = patientRepository.save(patient);
         log.info("Patient profile created successfully with id: {}", savedPatient.getId());
 
+        user.setHasProfileComplete(true);
+        userRepository.save(user);
+        log.info("User hasProfileComplete status updated to true for userId: {}", user.getId());
+
         return patientMapper.toResponse(savedPatient);
     }
 

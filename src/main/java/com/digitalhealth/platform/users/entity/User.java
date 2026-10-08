@@ -41,6 +41,10 @@ public class User {
     @Column(name = "profile_picture_url", length = 500)
     private String profilePictureUrl;
 
+    @Builder.Default
+    @Column(name = "has_profile_complete", nullable = false)
+    private boolean hasProfileComplete = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

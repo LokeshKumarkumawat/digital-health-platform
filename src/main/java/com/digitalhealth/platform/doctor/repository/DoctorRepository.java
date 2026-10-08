@@ -19,6 +19,9 @@ import java.util.Optional;
  */
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
+
+    Optional<Doctor> findByUserId(Long userId);
+
     /**
      * Find doctor by associated user
      * @param user The user entity

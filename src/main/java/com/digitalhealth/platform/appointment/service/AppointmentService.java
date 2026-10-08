@@ -101,7 +101,8 @@ public class AppointmentService {
                 .purposeOfConsultation(request.getPurposeOfConsultation())
                 .initialSymptoms(request.getInitialSymptoms())
                 .meetingLink(meetingLink)
-                .status(AppointmentStatus.SCHEDULED)
+                .status(AppointmentStatus.PENDING_PAYMENT)
+                .expiresAt(OffsetDateTime.now().plusMinutes(10))  // ✅ NEW: 10 min timeout
                 .build();
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
@@ -529,4 +530,36 @@ public class AppointmentService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
     }
+
+
+    /**
+     * Cancel a PENDING_PAYMENT appointment
+     * Different from cancelAppointment - this deletes/expires immediately
+     */
+    @Transactional
+    public void cancelPendingAppointment(Long appointmentId) {
+        log.info("Cancelling pending appointment: {}", appointmentId);
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
+
+        // Validate access
+        validateUserAccessToAppointment(appointment);
+
+        // Only PENDING_PAYMENT can be cancelled this way
+        if (appointment.getStatus() != AppointmentStatus.PENDING_PAYMENT) {
+            throw new BadRequestException("Only pending payment appointments can be cancelled here");
+        }
+
+        // Option A: Soft cancel (mark as EXPIRED for audit)
+        appointment.setStatus(AppointmentStatus.EXPIRED);
+        appointment.setExpiresAt(OffsetDateTime.now());
+        appointmentRepository.save(appointment);
+
+        // Option B: Hard delete (cleaner but loses history)
+        // appointmentRepository.delete(appointment);
+
+        log.info("Pending appointment {} cancelled/expired", appointmentId);
+    }
+
 }
