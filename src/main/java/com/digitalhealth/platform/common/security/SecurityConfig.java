@@ -69,6 +69,17 @@ public class SecurityConfig {
                                 "/files/**"
                         ).permitAll()
 
+                        // OAuth2 endpoints
+                        // ── OAuth2 Spring-internal endpoints ONLY ──────────────
+                        // IMPORTANT: only allow Spring's own OAuth2 paths here
+                        // Do NOT include /oauth2/redirect — that belongs to Angular
+                        .requestMatchers(
+                                "/oauth2/authorization/**",
+                                "/login/oauth2/code/**",
+                                "/actuator/**"
+
+                        ).permitAll()
+
                         // Everything else secured
                         .anyRequest().authenticated()
                 )

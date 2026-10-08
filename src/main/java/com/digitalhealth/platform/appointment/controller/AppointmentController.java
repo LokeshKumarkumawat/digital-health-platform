@@ -65,7 +65,7 @@ public class AppointmentController {
      * Returns doctor's appointments if user is doctor, patient's appointments otherwise
      */
     @GetMapping("/me")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('ROLE_DOCTOR', 'ROLE_PATIENT')")
     public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getMyAppointments() {
 
         List<AppointmentResponse> appointments = appointmentService.getMyAppointments();
@@ -84,6 +84,12 @@ public class AppointmentController {
      * Get appointment by ID
      * Accessible by patient, doctor, or admin involved in the appointment
      */
+
+//     In service:
+//     - If ADMIN: return any
+//     - If DOCTOR: return only if they are the doctor
+//     - If PATIENT: return only if they are the patient
+//     - Otherwise: throw AccessDenied
     @GetMapping("/{appointmentId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<AppointmentResponse>> getAppointmentById(
@@ -300,6 +306,27 @@ public class AppointmentController {
         ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Appointment deleted successfully")
+                .traceId(MDC.get("traceId"))
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+
+    /**
+     * Cancel a pending payment appointment (releases slot immediately)
+     * Called when user cancels payment
+     */
+    @PutMapping("/{appointmentId}/cancel-pending")
+    @PreAuthorize("hasRole('ROLE_PATIENT') or hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> cancelPendingAppointment(
+            @PathVariable Long appointmentId) {
+
+        appointmentService.cancelPendingAppointment(appointmentId);
+
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Pending appointment cancelled successfully")
                 .traceId(MDC.get("traceId"))
                 .build();
 

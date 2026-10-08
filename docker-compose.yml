@@ -42,28 +42,28 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - app-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+#  pgadmin:
+#    image: dpage/pgadmin4:latest
+#    container_name: pgadmin
+#    restart: unless-stopped
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#      PGADMIN_DEFAULT_PASSWORD: admin
+#      PGADMIN_CONFIG_SERVER_MODE: "False"
+#    ports:
+#      - "5050:80"
+#    volumes:
+#      - pgadmin_data:/var/lib/pgadmin
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - app-network
+#    logging:
+#      driver: "json-file"
+#      options:
+#        max-size: "10m"
+#        max-file: "3"
         
   redis:
     image: redis:7.4.2
@@ -74,16 +74,16 @@ services:
     networks:
       - app-network
 
-  redis-cli:
-    image: redis:7.4.2
-    container_name: redis-cli
-    depends_on:
-      - redis
-    entrypoint: ["redis-cli", "-h", "redis"]
-    stdin_open: true
-    tty: true
-    networks:
-      - app-network
+#  redis-cli:
+#    image: redis:7.4.2
+#    container_name: redis-cli
+#    depends_on:
+#      - redis
+#    entrypoint: ["redis-cli", "-h", "redis"]
+#    stdin_open: true
+#    tty: true
+#    networks:
+#      - app-network
 
 volumes:
   postgres_data:

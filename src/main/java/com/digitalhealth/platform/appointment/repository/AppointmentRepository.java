@@ -36,24 +36,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      */
     List<Appointment> findByStatusOrderByStartTimeDesc(AppointmentStatus status);
 
-    /**
-     * Find conflicting appointments for a doctor in a time range
-     * Checks for scheduled appointments that overlap with the proposed time slot
-     *
-     * @param doctorId The doctor ID
-     * @param newStartTime Start of the proposed time slot
-     * @param newEndTime End of the proposed time slot
-     * @return List of conflicting appointments
-     */
-    @Query("SELECT a FROM Appointment a " +
-            "WHERE a.doctor.id = :doctorId " +
-            "AND a.status = 'SCHEDULED' " +
-            "AND (a.startTime < :newEndTime AND a.endTime > :newStartTime)")
-    List<Appointment> findConflictingAppointments(
-            @Param("doctorId") Long doctorId,
-            @Param("newStartTime") OffsetDateTime newStartTime,
-            @Param("newEndTime") OffsetDateTime newEndTime
-    );
+
 
     /**
      * Find upcoming appointments for a doctor
@@ -222,4 +205,29 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      * @param doctorId The doctor ID
      */
     void deleteByDoctorId(Long doctorId);
+
+
+    @Query("SELECT a FROM Appointment a WHERE a.doctor.id = :doctorId " +
+            "AND a.status NOT IN ('CANCELLED', 'EXPIRED', 'NO_SHOW') " +
+            "AND ((a.startTime < :endTime AND a.endTime > :startTime))")
+    List<Appointment> findConflictingAppointments(
+            @Param("doctorId") Long doctorId,
+            @Param("startTime") OffsetDateTime startTime,
+            @Param("endTime") OffsetDateTime endTime
+    );
+
+//    @Query("SELECT a FROM Appointment a " +
+//            "WHERE a.doctor.id = :doctorId " +
+//            "AND a.status = 'SCHEDULED' " +
+//            "AND (a.startTime < :newEndTime AND a.endTime > :newStartTime)")
+//    List<Appointment> findConflictingAppointments(
+//            @Param("doctorId") Long doctorId,
+//            @Param("newStartTime") OffsetDateTime newStartTime,
+//            @Param("newEndTime") OffsetDateTime newEndTime
+//    );
+
+    List<Appointment> findByStatusAndExpiresAtBefore(
+            AppointmentStatus status,
+            OffsetDateTime dateTime
+    );
 }

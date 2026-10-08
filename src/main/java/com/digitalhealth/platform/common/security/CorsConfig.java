@@ -18,9 +18,11 @@ public class CorsConfig {
 
         // ✅ Frontend origins only
         config.setAllowedOriginPatterns(List.of(
-                "http://localhost:4200",   // Angular
-                "http://localhost:3000",   // React
-                "https://app.digitalhealth.com"
+                "http://localhost:4200",          // Local dev
+                "http://localhost:3000",          // React local dev
+                "https://devmatters.in",          // Production
+                "https://www.devmatters.in",      // Production www
+                "https://*.cloudfront.net"        // CloudFront (testing)
         ));
 
         // ✅ Required headers for JWT
@@ -28,7 +30,9 @@ public class CorsConfig {
                 "Authorization",
                 "Content-Type",
                 "X-Requested-With",
-                "Accept"
+                "Accept",
+                "X-XSRF-TOKEN"
+
         ));
 
         // ✅ REST methods

@@ -10,7 +10,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -45,16 +47,31 @@ public class UserController {
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody UserLoginRequest request) {
 
+        // 1. सर्विस से यूजर का डेटा और टोकन लें
         LoginResponse response = userService.login(request);
+
+        // 2. Spring का ResponseCookie इस्तेमाल करें (ताकि SameSite=None सेट हो सके)
+        ResponseCookie jwtCookie = ResponseCookie.from("ACCESS_TOKEN", response.getToken())
+                .httpOnly(true)
+                .secure(true)       // HTTPS या Localhost के लिए ज़रूरी
+                .path("/")
+                .maxAge(60 * 60)    // 1 घंटे के लिए (सेकंड्स में)
+                .sameSite("None")   // Angular (4200) से Backend (8080) के लिए अनिवार्य
+                .build();
+
+        response.setToken(null);
 
         ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Login successful")
-                .data(response)
+                .data(response)     // आप चाहें तो सुरक्षा के लिए यहाँ से टोकन हटा सकते हैं, क्योंकि वह अब कुकी में है
                 .traceId(MDC.get("traceId"))
                 .build();
 
-        return ResponseEntity.ok(apiResponse);
+        // 3. कुकी को हेडर में रखकर रिस्पॉन्स भेजें
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .body(apiResponse);
     }
 
     @PostMapping("/forgot-password")
@@ -222,18 +239,22 @@ public class UserController {
         return ResponseEntity.ok("/oauth2/authorization/google");
     }
 
+
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout() {
 
-        Cookie cookie = new Cookie("ACCESS_TOKEN", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true); // true in prod
-        cookie.setPath("/");
-        cookie.setMaxAge(0); // delete cookie
+        // खाली वैल्यू और 0 MaxAge के साथ कुकी को ओवरराइट करें
+        ResponseCookie deleteCookie = ResponseCookie.from("ACCESS_TOKEN", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)          // 0 मतलब ब्राउज़र इस कुकी को तुरंत डिलीट कर देगा
+                .sameSite("None")   // यह मैच होना ज़रूरी है
+                .build();
 
-        response.addCookie(cookie);
-
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .build();
     }
 
 

@@ -20,6 +20,8 @@ public class UserResponse {
 
     private String authProvider;
 
+    private boolean hasProfileComplete;
+
     private Set<String> roles;
 
     private OffsetDateTime createdAt;

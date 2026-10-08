@@ -1,0 +1,44 @@
+# .dockerignore — Exclude files from Docker build context
+# Without this, Docker sends your ENTIRE project to the daemon
+# including node_modules, .git, build outputs = VERY slow
+
+# Build outputs — Docker rebuilds these inside container
+build/
+.gradle/
+out/
+target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.class
+
+# Git — don't need in container
+.git/
+.gitignore
+
+# Local environment files — NEVER go into container
+.env
+.env.local
+application-local.yml
+*.tfvars
+
+# Test artifacts
+**/test-results/
+**/reports/
+
+# Documentation
+docs/
+*.md
+README*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Infrastructure code
+infrastructure/
+
+# Scripts
+scripts/

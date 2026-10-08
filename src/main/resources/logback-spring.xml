@@ -1,22 +1,139 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <!--  Always include Spring Boot defaults -->
-    <include resource="org/springframework/boot/logging/logback/base.xml"/>
-    <!--  OpenTelemetry Log Appender -->
-    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender"/>
+    <springProperty scope="context"
+                    name="APP_NAME"
+                    source="spring.application.name"
+                    defaultValue="digital-health-platform"/>
 
+    <!-- Console — used by ALL profiles -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [${APP_NAME}] [%thread] [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- OpenTelemetry — used by ALL profiles -->
+    <appender name="OTEL"
+              class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender"/>
+
+    <!-- ============================================================
+         DEV PROFILE — Console + File (absolute path /app/logs/)
+         Directory created in Dockerfile with correct ownership
+    ============================================================ -->
     <springProfile name="dev">
-        <include resource="logback-dev.xml"/>
+
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <!-- Absolute path — created in Dockerfile by root before USER switch -->
+            <file>/app/logs/${APP_NAME}/application.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>/app/logs/${APP_NAME}/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>7</maxHistory>
+                <totalSizeCap>500MB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [${APP_NAME}] [%thread] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>/app/logs/${APP_NAME}/error.log</file>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>ERROR</level>
+            </filter>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>/app/logs/${APP_NAME}/error.%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>30</maxHistory>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [${APP_NAME}] [%thread] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+            <appender-ref ref="OTEL"/>
+        </root>
+
+        <logger name="com.digitalhealth"   level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="org.hibernate.SQL"   level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="org.springframework" level="INFO"  additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="org.flywaydb"        level="INFO"  additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="com.zaxxer.hikari"   level="INFO"  additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
     </springProfile>
 
+    <!-- ============================================================
+         PROD PROFILE — Console ONLY
+         No file appenders → No filesystem issues in ECS Fargate
+         stdout → CloudWatch via awslogs driver
+    ============================================================ -->
     <springProfile name="prod">
-        <include resource="logback-prod.xml"/>
+
+        <appender name="ASYNC_CONSOLE" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>8192</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <appender-ref ref="CONSOLE"/>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+            <appender-ref ref="OTEL"/>
+        </root>
+
+        <logger name="com.digitalhealth"   level="INFO" additivity="false">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+            <appender-ref ref="OTEL"/>
+        </logger>
+        <logger name="org.springframework" level="WARN" additivity="false">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+        </logger>
+        <logger name="org.hibernate"       level="WARN" additivity="false">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+        </logger>
+        <logger name="org.flywaydb"        level="INFO" additivity="false">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+        </logger>
+        <logger name="com.zaxxer.hikari"   level="WARN" additivity="false">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+        </logger>
+        <logger name="io.netty"            level="WARN" additivity="false">
+            <appender-ref ref="ASYNC_CONSOLE"/>
+        </logger>
+
     </springProfile>
 
-    <!-- root logger → add OTEL appender to all profiles -->
-    <root level="INFO">
-        <appender-ref ref="OTEL"/>
-    </root>
+    <!-- ============================================================
+         TEST PROFILE — Console only
+    ============================================================ -->
+    <springProfile name="test">
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="com.digitalhealth" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+
+    </springProfile>
 
 </configuration>
